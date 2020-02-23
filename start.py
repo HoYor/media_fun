@@ -4,6 +4,7 @@ from PIL import Image
 import os
 import cv2
 import numpy as np
+import random
 import image2char,images2video,video2images
 
 # 视频所在目录
@@ -19,54 +20,50 @@ height = 960
 # 帧图片截取间隔
 time_interval = 3
 
-def test1():
-	im = Image.open('1.png')
-	width = im.size[0]
-	height = im.size[1]
-	print "size:",im.size
-	print "format:",im.format
-	print "mode:",im.mode
-	print "info:",im.info
-	px = im.load()
-	for i in range(height):
-		for j in range(width):
-			print px[j,i]
-
-def test2():
-	img = np.zeros((512,512),np.uint8)+255
-	cv2.putText(img,"test",(200,200),cv2.FONT_HERSHEY_SIMPLEX,2,(255,255,255),2)
-	cv2.imwrite("write.jpg",img)
-	cv2.imshow('img', img)
-	cv2.waitKey(5000)
-
 # 图片的每个像素由原图片组成
 # isColorful:是否彩色
-# degree:彩色程度(1-10)
-def picFather(pic,savePath,isColorful = False,degree = 4):
+# degree:彩色程度(1-5)
+# TODO: 可以考虑不裁切小图
+def picFather(pic,savePath,hidePic = None,isColorful = False,degree = 3):
+	if degree < 1 or degree > 5:
+		print 'degree取值范围为1-5'
+		return
 	im = Image.open(pic)
 	width = im.size[0]
 	height = im.size[1]
-	colorWidth = width*degree/20
-	colorHeight = height*degree/20
+	colorWidth = width*degree/10
+	colorHeight = height*degree/10
 	if width*height>3000:
 		print '图片尺寸太大'
 		return
 	img = Image.new('RGB',(width*width,height*height))
 	px = im.load()
+	if hidePic != None:
+		hideIm = Image.open(hidePic)
+		if width != hideIm.size[0] or height != hideIm.size[0]:
+			print '隐藏的图和原图尺寸需要一致'
+			return
+		hidePx = hideIm.load()
+		hideW = random.randint(0,width-1)
+		hideH = random.randint(0,height-1)
 	for i in range(height):
 		for j in range(width):
 			gray = image2char.get_gray(*px[j,i])
-			# print gray
-			# continue
 			for m in range(height):
 				for n in range(width):
 					if isColorful:
 						if m<colorHeight or m>height-colorHeight or n<colorWidth or n>width-colorWidth:
 							(b,g,r) = px[j,i]
 						else:
-							(b,g,r) = px[n,m]
+							if hidePic != None and i == hideH and j == hideW:
+								(b,g,r) = hidePx[n,m]
+							else:
+								(b,g,r) = px[n,m]
 					else:
-						(b,g,r) = px[n,m]
+						if hidePic != None and i == hideH and j == hideW:
+							(b,g,r) = hidePx[n,m]
+						else:
+							(b,g,r) = px[n,m]
 						point = round(gray/255.0,2)
 						b = b*point
 						g = g*point
@@ -74,42 +71,18 @@ def picFather(pic,savePath,isColorful = False,degree = 4):
 					img.putpixel((j*width+n,i*height+m),(int(b),int(g),int(r)))
 	img.save(savePath)
 
-# 图片的每个像素由原图片组成，藏hidePic进去
-def picFatherHidePic(pic,savePath,hidePic):
-	im = Image.open(pic)
-	hideIm = Image.open(hidePic)
-	width = im.size[0]
-	height = im.size[1]
-	if width*height>3000:
-		print '图片尺寸太大'
+# 融合图片，degree是融合程度，1-9，取值的具体效果自己看，isLtr:是否左右融合
+def mergePic(pic1,pic2,savePath,degree = 8,isColorful = False,isLtr = False):
+	if degree < 1 or degree > 9:
+		print "degree取值范围为1-9"
 		return
-	img = Image.new('RGB',(width*width,height*height))
-	px = im.load()
-	hidePx = hideIm.load()
-	for i in range(height):
-		for j in range(width):
-			gray = image2char.get_gray(*px[j,i])
-			# print gray
-			# continue
-			for m in range(height):
-				for n in range(width):
-					point = round(gray/255.0,2)
-					if j == width-4 and i == height-10:
-						(b,g,r) = hidePx[n,m]
-					else:
-						(b,g,r) = px[n,m]
-					b = b*point
-					g = g*point
-					r = r*point
-					img.putpixel((j*width+n,i*height+m),(int(b),int(g),int(r)))
-	img.save(savePath)
-
-# 把pic2和pic1左右融合，degree是融合程度，1-9，取值的具体效果自己看
-def mergeLtrPic(pic1,pic2,savePath,degree = 8,isColorful = False):
 	im1 = Image.open(pic1)
 	im2 = Image.open(pic2)
 	width = im1.size[0]
 	height = im1.size[1]
+	if width != im2.size[0] or height != im2.size[1]:
+		print "融合的两张图片尺寸需要一致"
+		return
 	px1 = im1.load()
 	px2 = im2.load()
 	for i in range(height):
@@ -117,43 +90,26 @@ def mergeLtrPic(pic1,pic2,savePath,degree = 8,isColorful = False):
 			if isColorful:
 				(b1,g1,r1) = px1[j,i]
 				(b2,g2,r2) = px2[j,i]
-				b = ((degree-(degree-5)*2*j/width)*b2 + (10-degree+(degree-5)*2*j/width)*b1)/10
-				g = ((degree-(degree-5)*2*j/width)*g2 + (10-degree+(degree-5)*2*j/width)*g1)/10
-				r = ((degree-(degree-5)*2*j/width)*r2 + (10-degree+(degree-5)*2*j/width)*r1)/10
+				if isLtr:
+					b = ((degree-(degree-5)*2*j/width)*b2 + (10-degree+(degree-5)*2*j/width)*b1)/10
+					g = ((degree-(degree-5)*2*j/width)*g2 + (10-degree+(degree-5)*2*j/width)*g1)/10
+					r = ((degree-(degree-5)*2*j/width)*r2 + (10-degree+(degree-5)*2*j/width)*r1)/10
+				else:
+					b = ((10-degree)*b1+degree*b2)/10
+					g = ((10-degree)*g1+degree*g2)/10
+					r = ((10-degree)*r1+degree*r2)/10
 				im1.putpixel((j,i) , (b,g,r))
 			else:
 				gray1 = image2char.get_gray(*px1[j,i])
 				gray2 = image2char.get_gray(*px2[j,i])
-				# gray = ((8-6*j/width)*gray2 + (2+6*j/width)*gray1)/10
-				gray = ((degree-(degree-5)*2*j/width)*gray2 + (10-degree+(degree-5)*2*j/width)*gray1)/10
+				if isLtr:
+					gray = ((degree-(degree-5)*2*j/width)*gray2 + (10-degree+(degree-5)*2*j/width)*gray1)/10
+				else:
+					gray = ((10-degree)*gray1+degree*gray2)/10
 				im1.putpixel((j,i) , (gray,gray,gray))
 	im1.save(savePath)
 
-# 融合图片
-def mergePic(pic1,pic2,savePath,degree = 8,isColorful = False):
-	im1 = Image.open(pic1)
-	im2 = Image.open(pic2)
-	width = im1.size[0]
-	height = im1.size[1]
-	px1 = im1.load()
-	px2 = im2.load()
-	for i in range(height):
-		for j in range(width):
-			if isColorful:
-				(b1,g1,r1) = px1[j,i]
-				(b2,g2,r2) = px2[j,i]
-				b = ((10-degree)*b1+degree*b2)/10
-				g = ((10-degree)*g1+degree*g2)/10
-				r = ((10-degree)*r1+degree*r2)/10
-				im1.putpixel((j,i) , (b,g,r))
-			else:
-				gray1 = image2char.get_gray(*px1[j,i])
-				gray2 = image2char.get_gray(*px2[j,i])
-				gray = ((10-degree)*gray1+degree*gray2)/10
-				im1.putpixel((j,i) , (gray,gray,gray))
-	im1.save(savePath)
-
-# pic1渐变成pic2,保存在saveDir目录下
+# pic1渐变成pic2,保存在saveDir目录下,frames是帧率
 def pic1ShadePic2(pic1,pic2,saveDir,frames):
 	im1 = Image.open(pic1)
 	im2 = Image.open(pic2)
@@ -189,9 +145,6 @@ def reversePic(openPath,savePath):
 			img.putpixel((j,i) , (255-b,255-g,255-r))
 	img.save(savePath)
 
-def config(picTxt):
-	image2char.picString = picTxt
-
 def start():
 	video2images.videos2frame(videos_src_path, video_formats, frames_save_path, width/4, height/4, time_interval)
 	image2char.images2pics("source","target")
@@ -210,14 +163,18 @@ def mergeVideo(video1,video2):
 	images2video.pics2video("twoVideos",(544,960))
 
 if __name__ == '__main__':
-	# config(u"小六")
-	# start()
-	# start2()
-	# reversePic('nana2.jpg','write.jpg')
-	# mergePic('merge_item1.jpg','merge_item2.jpg','merge.jpg',3,True)
-	mergeVideo("source1.mp4","source2.mp4")
-	# picFather('lyx2.jpg','write1.jpg',True,2)
-	# picFatherHidePic('pic_father.jpg','write.jpg','pic_mother.jpg')
-	# mergeLtrPic('merge_right.jpg','merge_left.jpg','merge.jpg',8,True)
-	# for i in range(9):
-	# 	mergeLtrPic('merge_right.jpg','merge_left.jpg','merge'+str(i+1)+'.jpg',i+1)
+	# 图片转某些字符组成的图片（像素长宽乘积不大于10000）- 效果很差
+	# image2char.image2charPic("source/source4.jpg","output/output5.jpg")
+	# 图片转某些字符组成的文本文件（像素长宽乘积不大于10000）- 效果不太好
+	# image2char.image2txt("source/source4.jpg","output/output.txt")
+	# 图片转一个字符组成的图片（像素长宽乘积不大于10000）
+	# image2char.image2pic("source/source4.jpg","output/output1.jpg",char="*")
+	# 图片转字符图片（像素长宽乘积不大于10000）
+	# image2char.image2picZN("source/source4.jpg","output/output6.jpg",isColorful=False,picString=u"我爱你",hideString="许嵩")
+	# 图片颜色反转
+	reversePic("source/source1.jpg","output/output6.jpg")
+	# 组成一张由小图构成的大图（像素长宽乘积不大于3000）
+	# picFather("source/source4.jpg","output/output12.jpg",isColorful=False,degree=1,hidePic="source/source3.jpg")
+	# 两张图片融合
+	# mergePic("source/source3.jpg","source/source4.jpg","output/output15.jpg",degree=3,isColorful=True,isLtr=False)
+	# mergeVideo("source1.mp4","source2.mp4")

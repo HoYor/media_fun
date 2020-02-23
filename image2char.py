@@ -4,20 +4,19 @@ import os
 from PIL import Image,ImageDraw,ImageFont
 import cv2
 import numpy as np
+import random
 
 # ascii_char = list('''$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1\{\}[]?-_+~<>i!lI;:,"^`'. ''')
-ascii_char =  list('#8XOHLTI)i=+;:,. ')
+ascii_char = list(u'#8XOHLTI)i=+;:,. ')
 scale = 10
-# scale = 10
-# picString = u"我爱你"
-picString = u"这是我女朋友，我把她的名字藏在了里面，找到的朋友给你做一张这样的图"
 
 # 得到颜色对应灰度的字符
-def get_char(r, g, b, alpha = 256):
+def get_char(r, g, b, alpha = 256, gray = None):
 	if alpha == 0:
 		return ' '
 	length = len(ascii_char)
-	gray = int(0.2126 * r + 0.7152 * g + 0.0722 * b)
+	if gray == None:
+		gray = int(0.2126 * r + 0.7152 * g + 0.0722 * b)
 	unit = (256.0 + 1) / length
 	return ascii_char[int(gray / unit)]
 
@@ -25,26 +24,36 @@ def get_char(r, g, b, alpha = 256):
 def get_gray(r, g, b):
 	return int(0.2126 * r + 0.7152 * g + 0.0722 * b)
 
-# 把openPath图片转换成字符图片
-def image2pic(openPath,savePath):
+# 把openPath图片转换成某些字符组成的图片
+def image2charPic(openPath,savePath,r = 0,g = 0,b = 0):
 	im = Image.open(openPath)
 	width = im.size[0]
 	height = im.size[1]
-	# print "width:",width
-	# print "height:",height
-	# return
+	img = np.zeros([height*scale,width*scale],np.uint8)+255
+	px = im.load()
+	for i in range(height):
+		for j in range(width):
+			cv2.putText(img,get_char(*px[j,i]),(j*scale,i*scale),cv2.FONT_HERSHEY_SIMPLEX,0.5,(r,g,b),1)
+	# compress = cv2.resize(img, (width,height), interpolation=cv2.INTER_AREA)
+	cv2.imwrite(savePath,img)
+
+# 把openPath图片转换成一个字符组成的图片
+def image2pic(openPath,savePath,char="*"):
+	im = Image.open(openPath)
+	width = im.size[0]
+	height = im.size[1]
 	img = np.zeros([height*scale,width*scale],np.uint8)+255
 	px = im.load()
 	for i in range(height):
 		for j in range(width):
 			gray = get_gray(*px[j,i])
-			cv2.putText(img,"*",(j*scale,i*scale),cv2.FONT_HERSHEY_SIMPLEX,0.5,(gray,gray,gray),1)
+			cv2.putText(img,char,(j*scale,i*scale),cv2.FONT_HERSHEY_SIMPLEX,0.5,(gray,gray,gray),1)
 	# compress = cv2.resize(img, (width,height), interpolation=cv2.INTER_AREA)
 	cv2.imwrite(savePath,img)
 	# cv2.imshow('img', img)
 
-# 把openPath图片转换成中文字符图片
-def image2picZN(openPath,savePath):
+# 把openPath图片转换成由一段文字组成的图片，可以用来替代image2pic方法
+def image2picZN(openPath,savePath,isColorful=False,picString=u"我爱你",hideString=""):
 	im = Image.open(openPath)
 	width = im.size[0]
 	height = im.size[1]
@@ -58,43 +67,26 @@ def image2picZN(openPath,savePath):
 	draw = ImageDraw.Draw(image)
 	font = ImageFont.truetype("song.otf", scale, encoding="utf-8")
 	px = im.load()
+	hideStartI = 0
+	hideStartJ = 0
+	if hideString != "":
+		hideStartI = random.randint(0,height)
+		hideStartJ = random.randint(0,width-len(hideString))
 	for i in range(height):
 		for j in range(width):
-			gray = get_gray(*px[j,i])
-			draw.text((j*scale, i*scale), picString[curPicStringIndex], (gray,gray,gray), font)
-			if curPicStringIndex+1 == picStringLen:
-				curPicStringIndex = 0
+			if(isColorful):
+				(b,g,r) = px[j,i]
 			else:
-				curPicStringIndex = curPicStringIndex+1
-	image.save(savePath)
-
-def image2picZNColorful(openPath,savePath):
-	im = Image.open(openPath)
-	width = im.size[0]
-	height = im.size[1]
-	picStringLen = len(picString)
-	curPicStringIndex = 0
-	array = np.ndarray((height*scale, width*scale, 3), np.uint8)
-	array[:,:,0] = 255
-	array[:,:,1] = 255
-	array[:,:,2] = 255
-	image = Image.fromarray(array)
-	draw = ImageDraw.Draw(image)
-	font = ImageFont.truetype("song.otf", scale, encoding="utf-8")
-	px = im.load()
-	for i in range(height):
-		for j in range(width):
-			(b,g,r) = px[j,i]
-			if i == 100 and j == 60:
-				draw.text((j*scale, i*scale), u"江", (b,g,r), font)
-			elif i==100 and j== 61:
-				draw.text((j*scale, i*scale), u"娜", (b,g,r), font)
+				b=g=r = get_gray(*px[j,i])
+			if hideString != "" and i == hideStartI and j >= hideStartJ:
+				draw.text((j*scale, i*scale), hideString[0], (b,g,r), font)
+				hideString = hideString[1:]
 			else:
 				draw.text((j*scale, i*scale), picString[curPicStringIndex], (b,g,r), font)
-			if curPicStringIndex+1 == picStringLen:
-				curPicStringIndex = 0
-			else:
-				curPicStringIndex = curPicStringIndex+1
+				if curPicStringIndex+1 == picStringLen:
+					curPicStringIndex = 0
+				else:
+					curPicStringIndex = curPicStringIndex+1
 	image.save(savePath)
 
 # 把openPath图片转换成字符txt文件
@@ -123,10 +115,4 @@ def images2pics(openDir,saveDir):
 		image2picZN(openDir+"/"+file,saveDir+"/"+file)
 
 if __name__ == '__main__':
-	# images2pics("source","target")
-	# image2txt()
-	# image2pic("1.jpg","write.jpg")
-	picString = u"兰沅羲"
-	# image2picZN("lyx.jpg","write.jpg")
-	image2picZNColorful("lyx3.jpg","write.jpg")
-	# mergePic("1.jpg","2.jpg","merge.jpg")
+	pass
