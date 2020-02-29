@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from PIL import Image
+from PIL import Image,ImageDraw,ImageFont
 import os
 import cv2
 import numpy as np
@@ -70,6 +70,42 @@ def picFather(pic,savePath,hidePic = None,isColorful = False,degree = 3):
 						r = r*point
 					img.putpixel((j*width+n,i*height+m),(int(b),int(g),int(r)))
 	img.save(savePath)
+
+# 用一张图片写字
+def picWord(pic,savePath,word):
+	if word is None or len(word) > 1:
+		print("只能写一个字")
+		return
+	im = Image.open(pic)
+	width = im.size[0]
+	height = im.size[1]
+	if width != height:
+		print("图片应该是正方形且不大于50")
+		return
+	if width != 50:
+		im = im.resize((50, 50),Image.ANTIALIAS)
+	# 建一个画布写字
+	array = np.ndarray((50, 50, 3), np.uint8)
+	array[:,:,0] = 255
+	array[:,:,1] = 255
+	array[:,:,2] = 255
+	image = Image.fromarray(array)
+	draw = ImageDraw.Draw(image)
+	font = ImageFont.truetype("song.otf", 30, encoding="utf-8")
+	draw.text((10, 2), word, (0,0,0), font)
+	# 建一个画布用图片写字
+	newWidth = 2500
+	sourcePic = im.load()
+	wordPic = image.load()
+	savePic = Image.new('RGB',(newWidth,newWidth),color=(255,255,255))
+	for i in range(50):
+		for j in range(50):
+			gray = image2char.get_gray(*wordPic[j,i])
+			if gray < 50:
+				for m in range(50):
+					for n in range(50):
+						savePic.putpixel((j*50+m,i*50+n),sourcePic[m,n])
+	savePic.save(savePath)
 
 # 融合图片，degree是融合程度，1-9，取值的具体效果自己看，isLtr:是否左右融合
 def mergePic(pic1,pic2,savePath,degree = 8,isColorful = False,isLtr = False):
@@ -172,9 +208,10 @@ if __name__ == '__main__':
 	# 图片转字符图片（像素长宽乘积不大于10000）
 	# image2char.image2picZN("source/source4.jpg","output/output6.jpg",isColorful=False,picString=u"我爱你",hideString="许嵩")
 	# 图片颜色反转
-	reversePic("source/source1.jpg","output/output6.jpg")
+	# reversePic("source/source1.jpg","output/output6.jpg")
 	# 组成一张由小图构成的大图（像素长宽乘积不大于3000）
 	# picFather("source/source4.jpg","output/output12.jpg",isColorful=False,degree=1,hidePic="source/source3.jpg")
 	# 两张图片融合
 	# mergePic("source/source3.jpg","source/source4.jpg","output/output15.jpg",degree=3,isColorful=True,isLtr=False)
 	# mergeVideo("source1.mp4","source2.mp4")
+	picWord("source/source4.jpg","output/output13.jpg",u"秀")
