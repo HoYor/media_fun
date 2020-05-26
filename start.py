@@ -23,8 +23,9 @@ time_interval = 3
 # 图片的每个像素由原图片组成
 # isColorful:是否彩色
 # degree:彩色程度(1-5)
+# isMiniPic:是否按位置生成所有的小图
 # TODO: 可以考虑不裁切小图
-def picFather(pic,savePath,hidePic = None,isColorful = False,degree = 3):
+def picFather(pic,savePath,hidePic = None,isColorful = False,degree = 3,isNeedMiniPic = False):
 	if degree < 1 or degree > 5:
 		print 'degree取值范围为1-5'
 		return
@@ -46,9 +47,14 @@ def picFather(pic,savePath,hidePic = None,isColorful = False,degree = 3):
 		hidePx = hideIm.load()
 		hideW = random.randint(0,width-1)
 		hideH = random.randint(0,height-1)
+	if isNeedMiniPic:
+		saveFoldPath = savePath[:savePath.rindex('.')]+'/'
+		os.system('mkdir {}'.format(saveFoldPath))
 	for i in range(height):
 		for j in range(width):
 			gray = image2char.get_gray(*px[j,i])
+			if isNeedMiniPic:
+				miniImg = Image.new('RGB',(width,height))
 			for m in range(height):
 				for n in range(width):
 					if isColorful:
@@ -68,7 +74,11 @@ def picFather(pic,savePath,hidePic = None,isColorful = False,degree = 3):
 						b = b*point
 						g = g*point
 						r = r*point
+					if isNeedMiniPic:
+						miniImg.putpixel((n,m),(int(b),int(g),int(r)))
 					img.putpixel((j*width+n,i*height+m),(int(b),int(g),int(r)))
+			if isNeedMiniPic:
+				miniImg.save('{}{}_{}.jpg'.format(saveFoldPath, i+1, j+1))
 	img.save(savePath)
 
 # 用一张图片写字
@@ -210,8 +220,8 @@ if __name__ == '__main__':
 	# 图片颜色反转
 	# reversePic("source/source1.jpg","output/output6.jpg")
 	# 组成一张由小图构成的大图（像素长宽乘积不大于3000）
-	# picFather("source/source4.jpg","output/output12.jpg",isColorful=False,degree=1,hidePic="source/source3.jpg")
+	picFather("source/source4.jpg","output/output15.jpg",isColorful=True,degree=1,isNeedMiniPic=True)
 	# 两张图片融合
 	# mergePic("source/source3.jpg","source/source4.jpg","output/output15.jpg",degree=3,isColorful=True,isLtr=False)
 	# mergeVideo("source1.mp4","source2.mp4")
-	picWord("source/source4.jpg","output/output13.jpg",u"秀")
+	# picWord("source/source4.jpg","output/output14.jpg",u"嵩")
