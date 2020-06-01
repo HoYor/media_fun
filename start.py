@@ -112,6 +112,7 @@ def picWord(pic,savePath,word):
 		for j in range(50):
 			gray = image2char.get_gray(*wordPic[j,i])
 			if gray < 50:
+				print('[{},{}],'.format(i,j))
 				for m in range(50):
 					for n in range(50):
 						savePic.putpixel((j*50+m,i*50+n),sourcePic[m,n])
