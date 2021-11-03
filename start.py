@@ -118,6 +118,75 @@ def picWord(pic,savePath,word):
 						savePic.putpixel((j*50+m,i*50+n),sourcePic[m,n])
 	savePic.save(savePath)
 
+
+# 用多张图片写字
+# direction: 0(从左到右),1(从上到下)
+def picWords(picDir,savePath,words,direction):
+	sourcePics = []
+	for pic in os.listdir(picDir):
+		if pic.endswith('.png') or pic.endswith('.jpg') or pic.endswith('.jpeg'):
+			fullPath = '{}/{}'.format(picDir, pic)
+			im = Image.open(fullPath)
+			width = im.size[0]
+			height = im.size[1]
+			if width > height:
+				resizeWidth = 50
+				resizeHeight = 50*height/width
+			else:
+				resizeHeight = 50
+				resizeWidth = 50*width/height
+			im = im.resize((resizeWidth, resizeHeight),Image.ANTIALIAS)
+			sourcePics.append([im.load(), resizeWidth, resizeHeight])
+	if len(sourcePics) == 0:
+		print("没有图片")
+		return
+	# 建一个画布写字
+	if direction == 0:
+		text_canvas_width = 40*len(words)
+		text_canvas_height = 50
+	else:
+		text_canvas_height = 40*len(words)
+		text_canvas_width = 50
+	array = np.ndarray((text_canvas_height, text_canvas_width, 3), np.uint8)
+	array[:,:,0] = 255
+	array[:,:,1] = 255
+	array[:,:,2] = 255
+	image = Image.fromarray(array)
+	draw = ImageDraw.Draw(image)
+	font = ImageFont.truetype("song.otf", 30, encoding="utf-8")
+	if direction == 0:
+		for index, word in enumerate(words):
+			draw.text((8+36*index, 2), word, (0,0,0), font)
+	else:
+		for index, word in enumerate(words):
+			draw.text((10, 36*index), word, (0,0,0), font)
+	# image.save('text{}.png'.format(direction))
+	# 建一个画布用图片写字
+	newWidth = text_canvas_width * 50
+	newHeight = text_canvas_height * 50
+	wordPic = image.load()
+	savePic = Image.new('RGB',(newWidth,newHeight),color=(255,255,255))
+	for i in range(text_canvas_height):
+		for j in range(text_canvas_width):
+			gray = image2char.get_gray(*wordPic[j,i])
+			if gray < 50:
+				# print('[{},{}],'.format(i,j))
+				sourcePicArr = sourcePics[random.randint(0, len(sourcePics)-1)]
+				sourcePic = sourcePicArr[0]
+				sourcePicWidth = sourcePicArr[1]
+				sourcePicHeight = sourcePicArr[2]
+				offsetX = 0
+				offsetY = 0
+				if sourcePicWidth != 50:
+					offsetX = (50-sourcePicWidth)/2
+				if sourcePicHeight != 50:
+					offsetY = (50-sourcePicHeight)/2
+				for m in range(sourcePicWidth):
+					for n in range(sourcePicHeight):
+						savePic.putpixel((j*50+offsetX+m,i*50+offsetY+n),sourcePic[m,n])
+	savePic.save(savePath)
+
+
 # 融合图片，degree是融合程度，1-9，取值的具体效果自己看，isLtr:是否左右融合
 def mergePic(pic1,pic2,savePath,degree = 8,isColorful = False,isLtr = False):
 	if degree < 1 or degree > 9:
@@ -221,8 +290,9 @@ if __name__ == '__main__':
 	# 图片颜色反转
 	# reversePic("source/source1.jpg","output/output6.jpg")
 	# 组成一张由小图构成的大图（像素长宽乘积不大于3000）
-	picFather("source/source4.jpg","output/output15.jpg",isColorful=True,degree=1,isNeedMiniPic=True)
+	# picFather("source/source4.jpg","output/output15.jpg",isColorful=True,degree=1,isNeedMiniPic=True)
 	# 两张图片融合
 	# mergePic("source/source3.jpg","source/source4.jpg","output/output15.jpg",degree=3,isColorful=True,isLtr=False)
 	# mergeVideo("source1.mp4","source2.mp4")
 	# picWord("source/source4.jpg","output/output14.jpg",u"嵩")
+	picWords("source/许嵩","output/output17.jpg",u"许嵩", 1)
