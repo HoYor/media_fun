@@ -6,6 +6,9 @@ import cv2
 import numpy as np
 import random
 import image2char,images2video,video2images
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 # 视频所在目录
 videos_src_path = "./"
@@ -121,8 +124,9 @@ def picWord(pic,savePath,word):
 
 # 用多张图片写字
 # direction: 0(从左到右),1(从上到下)
-def picWords(picDir,savePath,words,direction):
+def picWords(picDir,savePath,words,direction,writePosition=True):
 	sourcePics = []
+	os.mkdir('output/{}'.format(words))
 	for pic in os.listdir(picDir):
 		if pic.endswith('.png') or pic.endswith('.jpg') or pic.endswith('.jpeg'):
 			fullPath = '{}/{}'.format(picDir, pic)
@@ -135,7 +139,12 @@ def picWords(picDir,savePath,words,direction):
 			else:
 				resizeHeight = 50
 				resizeWidth = 50*width/height
-			im = im.resize((resizeWidth, resizeHeight),Image.ANTIALIAS)
+			if writePosition:
+				# 稍微存大一点
+				im = im.resize((resizeWidth*2, resizeHeight*2),Image.ANTIALIAS)
+				im.save('output/{}/{}'.format(words, pic))
+			else:
+				im = im.resize((resizeWidth, resizeHeight),Image.ANTIALIAS)
 			sourcePics.append([im.load(), resizeWidth, resizeHeight])
 	if len(sourcePics) == 0:
 		print("没有图片")
@@ -166,11 +175,15 @@ def picWords(picDir,savePath,words,direction):
 	newHeight = text_canvas_height * 50
 	wordPic = image.load()
 	savePic = Image.new('RGB',(newWidth,newHeight),color=(255,255,255))
+	if writePosition:
+		writePositionStr = ''
 	for i in range(text_canvas_height):
 		for j in range(text_canvas_width):
 			gray = image2char.get_gray(*wordPic[j,i])
 			if gray < 50:
-				# print('[{},{}],'.format(i,j))
+				if writePosition:
+					writePositionStr += '[{},{}],'.format(i,j)
+					continue
 				sourcePicArr = sourcePics[random.randint(0, len(sourcePics)-1)]
 				sourcePic = sourcePicArr[0]
 				sourcePicWidth = sourcePicArr[1]
@@ -184,7 +197,13 @@ def picWords(picDir,savePath,words,direction):
 				for m in range(sourcePicWidth):
 					for n in range(sourcePicHeight):
 						savePic.putpixel((j*50+offsetX+m,i*50+offsetY+n),sourcePic[m,n])
-	savePic.save(savePath)
+		if writePosition:
+			writePositionStr += '\n'
+	if writePosition:
+		with open('words_position.txt', 'w') as wpf:
+			wpf.write(writePositionStr)
+	else:
+		savePic.save(savePath)
 
 
 # 融合图片，degree是融合程度，1-9，取值的具体效果自己看，isLtr:是否左右融合
@@ -295,4 +314,4 @@ if __name__ == '__main__':
 	# mergePic("source/source3.jpg","source/source4.jpg","output/output15.jpg",degree=3,isColorful=True,isLtr=False)
 	# mergeVideo("source1.mp4","source2.mp4")
 	# picWord("source/source4.jpg","output/output14.jpg",u"嵩")
-	picWords("source/许嵩","output/output17.jpg",u"许嵩", 1)
+	picWords("source/idol/周杰伦","output/output15.jpg",u"周杰伦", 1)
