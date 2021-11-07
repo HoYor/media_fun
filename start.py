@@ -178,6 +178,8 @@ def picWords(picDir,savePath,words,direction,writePosition=True):
 	if writePosition:
 		writePositionStr = ''
 	for i in range(text_canvas_height):
+		if writePosition:
+			writePositionStr += '['
 		for j in range(text_canvas_width):
 			gray = image2char.get_gray(*wordPic[j,i])
 			if gray < 50:
@@ -198,7 +200,7 @@ def picWords(picDir,savePath,words,direction,writePosition=True):
 					for n in range(sourcePicHeight):
 						savePic.putpixel((j*50+offsetX+m,i*50+offsetY+n),sourcePic[m,n])
 		if writePosition:
-			writePositionStr += '\n'
+			writePositionStr += '],\n'
 	if writePosition:
 		with open('words_position.txt', 'w') as wpf:
 			wpf.write(writePositionStr)
@@ -314,4 +316,4 @@ if __name__ == '__main__':
 	# mergePic("source/source3.jpg","source/source4.jpg","output/output15.jpg",degree=3,isColorful=True,isLtr=False)
 	# mergeVideo("source1.mp4","source2.mp4")
 	# picWord("source/source4.jpg","output/output14.jpg",u"嵩")
-	picWords("source/idol/周杰伦","output/output15.jpg",u"周杰伦", 1)
+	picWords("source/idol/华晨宇","output/output16.jpg",u"华晨宇", 1)
