@@ -299,6 +299,30 @@ def mergeVideo(video1,video2):
 	video2images.video2frame(video2,video2,'twoVideos/',544,960,1,2)
 	images2video.pics2video("twoVideos",(544,960))
 
+
+# 边缘检测
+def findImageEdge(img_path):
+    from PIL import Image, ImageFilter
+    with open(img_path,'rb') as imgf:
+        image_handler = Image.open(imgf)
+        # 边缘检测
+        image_handler = image_handler.convert("L")
+        image_handler = image_handler.filter(ImageFilter.FIND_EDGES)
+		# 保存边缘检测的图
+        # image_handler.save("edge.png")
+	edge_width = image_handler.size[0]
+	edge_height = image_handler.size[1]
+	edge_image = image_handler.load()
+	save_pic = Image.new('RGB',(edge_width,edge_height),color=(255,255,255))
+	for i in range(edge_width):
+		for j in range(edge_height):
+			gray = edge_image[j,i]
+			if gray > 50:
+				print('[{},{}],'.format(j, i))
+				save_pic.putpixel((j,i), (255, 0, 0))
+	save_pic.save('edge.png')
+
+
 if __name__ == '__main__':
 	# 图片转某些字符组成的图片（像素长宽乘积不大于10000）- 效果很差
 	# image2char.image2charPic("source/source4.jpg","output/output5.jpg")
@@ -317,3 +341,4 @@ if __name__ == '__main__':
 	# mergeVideo("source1.mp4","source2.mp4")
 	# picWord("source/source4.jpg","output/output14.jpg",u"嵩")
 	picWords("source/idol/华晨宇","output/output16.jpg",u"华晨宇", 1)
+	# findImageEdge("source/source1.jpg")
