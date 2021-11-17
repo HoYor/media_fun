@@ -202,7 +202,7 @@ def picWords(picDir,savePath,words,direction,writePosition=True):
 		if writePosition:
 			writePositionStr += '],\n'
 	if writePosition:
-		with open('words_position.txt', 'w') as wpf:
+		with open('{}.txt'.format(words), 'w') as wpf:
 			wpf.write(writePositionStr)
 	else:
 		savePic.save(savePath)
@@ -316,4 +316,6 @@ if __name__ == '__main__':
 	# mergePic("source/source3.jpg","source/source4.jpg","output/output15.jpg",degree=3,isColorful=True,isLtr=False)
 	# mergeVideo("source1.mp4","source2.mp4")
 	# picWord("source/source4.jpg","output/output14.jpg",u"嵩")
-	picWords("source/idol/华晨宇","output/output16.jpg",u"华晨宇", 1)
+	wordsArr = []
+	for words in wordsArr:
+		picWords("source/idol/{}".format(words),"output/output16.jpg",u"{}".format(words), 1)
